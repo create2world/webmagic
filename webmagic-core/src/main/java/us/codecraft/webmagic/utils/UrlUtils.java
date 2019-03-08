@@ -76,7 +76,7 @@ public class UrlUtils {
     private static Pattern patternForProtocal = Pattern.compile("[\\w]+://");
 
     public static String removeProtocol(String url) {
-        //正则替换"https://github.com/" -> "github.com"
+        //正则替换"https://github.com/code4craft" -> "github.com/code4craft"
         return patternForProtocal.matcher(url).replaceAll("");
     }
 

@@ -290,7 +290,7 @@ public class Spider implements Runnable, Task {
                 threadPool = new CountableThreadPool(threadNum);
             }
         }
-        if (startRequests != null) {
+        if (startRequests != null) {//first为null
             for (Request request : startRequests) {
                 addRequest(request);
             }
@@ -305,7 +305,7 @@ public class Spider implements Runnable, Task {
         initComponent();
         logger.info("Spider {} started!",getUUID());
         while (!Thread.currentThread().isInterrupted() && stat.get() == STAT_RUNNING) {
-            final Request request = scheduler.poll(this);
+            final Request request = scheduler.poll(this);  //task传递的无用?
             if (request == null) {
                 if (threadPool.getThreadAlive() == 0 && exitWhenComplete) {
                     break;
@@ -317,7 +317,7 @@ public class Spider implements Runnable, Task {
                     @Override
                     public void run() {
                         try {
-                            processRequest(request);
+                            processRequest(request);//download page
                             onSuccess(request);
                         } catch (Exception e) {
                             onError(request);
@@ -360,7 +360,7 @@ public class Spider implements Runnable, Task {
             if (statNow == STAT_RUNNING) {
                 throw new IllegalStateException("Spider is already running!");
             }
-            if (stat.compareAndSet(statNow, STAT_RUNNING)) {
+            if (stat.compareAndSet(statNow, STAT_RUNNING)) {//stat=1
                 break;
             }
         }
@@ -412,7 +412,7 @@ public class Spider implements Runnable, Task {
     private void onDownloadSuccess(Request request, Page page) {
         if (site.getAcceptStatCode().contains(page.getStatusCode())){
             pageProcessor.process(page);
-            extractAndAddRequests(page, spawnUrl);
+            extractAndAddRequests(page, spawnUrl); //添加request   spawnUrl的运用?(refuse add?)
             if (!page.getResultItems().isSkip()) {
                 for (Pipeline pipeline : pipelines) {
                     pipeline.process(page.getResultItems(), this);
@@ -464,15 +464,22 @@ public class Spider implements Runnable, Task {
         }
     }
 
+    /**
+     * 设置Site的domain，将request放置在阻塞队列
+     *
+     */
     private void addRequest(Request request) {
         if (site.getDomain() == null && request != null && request.getUrl() != null) {
             site.setDomain(UrlUtils.getDomain(request.getUrl()));
         }
+        //阻塞队列？
         scheduler.push(request, this);
+
+
     }
 
     protected void checkIfRunning() {
-        if (stat.get() == STAT_RUNNING) {
+        if (stat.get() == STAT_RUNNING) {//stat:AtomicInteger的使用
             throw new IllegalStateException("Spider is already running!");
         }
     }
@@ -493,8 +500,8 @@ public class Spider implements Runnable, Task {
         for (String url : urls) {
             addRequest(new Request(url));
         }
-        signalNewUrl();
-        return this;
+        signalNewUrl();//唤醒线程
+        return this;//返回对象
     }
 
     /**
